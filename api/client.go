@@ -13,6 +13,7 @@ import (
 
 	"golang.org/x/net/publicsuffix"
 
+	"github.com/vscodev/asmr-downloader/fs"
 	"github.com/vscodev/asmr-downloader/model"
 )
 
@@ -83,19 +84,23 @@ func (c *Client) downloadFile(name string, url string) error {
 }
 
 func (c *Client) downloadTrack(parent string, track *model.Track) error {
-	currentPath := filepath.Join(parent, track.Title)
+	currentPath := filepath.Join(parent, fs.TrimInvalidFileNameChars(track.Title))
 	if track.IsFolder() {
-		_ = os.MkdirAll(currentPath, 0755)
+		if err := os.MkdirAll(currentPath, 0755); err != nil {
+			return err
+		}
+
 		for _, child := range track.Children {
 			if err := c.downloadTrack(currentPath, child); err != nil {
 				log.Printf("Can not download track (%s) : %s", filepath.Join(currentPath, child.Title), err.Error())
 			}
 		}
+
 		return nil
-	} else {
-		log.Printf("Downloading track (%s)", currentPath)
-		return c.downloadFile(currentPath, track.MediaDownloadURL)
 	}
+
+	log.Printf("Downloading track (%s)", currentPath)
+	return c.downloadFile(currentPath, track.MediaDownloadURL)
 }
 
 func (c *Client) DownloadTracks(id string, tracks []*model.Track) error {
