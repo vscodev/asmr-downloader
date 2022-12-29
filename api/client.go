@@ -80,6 +80,11 @@ func (c *Client) downloadFile(name string, url string) error {
 	defer file.Close()
 
 	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		// 下载出错时删除文件
+		_ = os.Remove(name)
+	}
+
 	return err
 }
 
