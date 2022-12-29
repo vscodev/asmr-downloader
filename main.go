@@ -12,6 +12,7 @@ import (
 )
 
 var (
+	_apiClient   = api.NewClient()
 	_rjCodeRegex = regexp.MustCompile(`^(?i)(RJ)?(\d{6,})$`)
 )
 
@@ -24,29 +25,43 @@ func parseProductID(rjCode string) (string, bool) {
 	return matched[2], true
 }
 
-func main() {
-	c := api.NewClient()
-	reader := bufio.NewReader(os.Stdin)
-	for {
-		fmt.Print("\nInput the RJ code and press Enter to continue: ")
+func downloadWork(id string) {
+	fmt.Println()
 
-		rjCode, _ := reader.ReadString('\n')
-		id, ok := parseProductID(strings.TrimSpace(rjCode))
+	log.Printf("Getting tracks of work (RJ%s)", id)
+	tracks, err := _apiClient.GetTracks(id)
+	if err != nil {
+		log.Printf("Can not get tracks of work (RJ%s) : %s", id, err.Error())
+		return
+	}
+
+	log.Printf("Downloading tracks of work (RJ%s)", id)
+	if err = _apiClient.DownloadTracks(id, tracks); err == nil {
+		log.Printf("Tracks of work (RJ%s) downloaded", id)
+	}
+}
+
+func downloadWorks(rjCodes []string) {
+	for _, rjCode := range rjCodes {
+		id, ok := parseProductID(rjCode)
 		if !ok {
 			continue
 		}
 
-		fmt.Println()
-		log.Printf("Getting tracks of work (RJ%s)", id)
-		tracks, err := c.GetTracks(id)
-		if err != nil {
-			log.Printf("Can not get tracks of work (RJ%s) : %s", id, err.Error())
-			continue
-		}
+		downloadWork(id)
+	}
+}
 
-		log.Printf("Downloading tracks of work (RJ%s)", id)
-		if err = c.DownloadTracks(id, tracks); err == nil {
-			log.Printf("Tracks of work (RJ%s) downloaded", id)
+func main() {
+	if len(os.Args) > 1 {
+		downloadWorks(os.Args[1:])
+	} else {
+		reader := bufio.NewReader(os.Stdin)
+		for {
+			fmt.Print("\nInput the RJ codes separated by space and press Enter to continue: ")
+
+			rjCodes, _ := reader.ReadString('\n')
+			downloadWorks(strings.Fields(rjCodes))
 		}
 	}
 }
