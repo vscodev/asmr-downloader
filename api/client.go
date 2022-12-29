@@ -110,11 +110,17 @@ func (c *Client) downloadTrack(parent string, track *model.Track) error {
 
 func (c *Client) DownloadTracks(id string, tracks []*model.Track) error {
 	basePath := "RJ" + id
+	if err := os.MkdirAll(basePath, 0755); err != nil {
+		log.Printf("Can not download tracks (%s) : %s", basePath, err.Error())
+		return err
+	}
+
 	for _, track := range tracks {
 		if err := c.downloadTrack(basePath, track); err != nil {
 			log.Printf("Can not download track (%s) : %s", filepath.Join(basePath, track.Title), err.Error())
 		}
 	}
+
 	return nil
 }
 
