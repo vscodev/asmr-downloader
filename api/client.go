@@ -73,6 +73,14 @@ func (c *Client) downloadFile(name string, url string) error {
 	}
 	defer resp.Body.Close()
 
+	// 忽略已经下载的音轨
+	fi, err := os.Stat(name)
+	if err == nil && fi.Size() == resp.ContentLength {
+		log.Printf("Track (%s) already downloaded", name)
+		return nil
+	}
+
+	log.Printf("Downloading track (%s)", name)
 	file, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0664)
 	if err != nil {
 		return err
@@ -103,8 +111,6 @@ func (c *Client) downloadTrack(parent string, track *model.Track) error {
 
 		return nil
 	}
-
-	log.Printf("Downloading track (%s)", currentPath)
 	return c.downloadFile(currentPath, track.MediaDownloadURL)
 }
 
